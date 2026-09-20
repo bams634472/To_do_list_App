@@ -22,20 +22,25 @@ button.addEventListener("click", Add_items);
 window.addEventListener("DOMContentLoaded", setupItems);
 
 
-// document.addEventListener("keypress", function(event) {
-//     const eventKey = event.key;
-//     if(eventKey === "Enter") {
-//        return Add_items;
-//     }
-//     else {
-//         return null;
-//     }
-// })
+document.addEventListener("keypress", keyboard_Press)
+
+function keyboard_Press(type) {
+    
+        const eventKey = type.key;
+        if (eventKey === "Enter") {
+            Add_items(type)
+
+        }
+        else {
+           removeEventListener("keypress", keyboard_Press)
+        }
+    }
 
 
 // Add_items function add value to the screen
 function Add_items(e) {
     e.preventDefault();
+    // console.log(e)
     const value = text.value.trim();
      if (!value) return;
 
@@ -64,10 +69,7 @@ function Add_items(e) {
 
     
     create_list(id, value);
-
-
     addToLocalStorage(id, value);
-
     setDefault();
 }
 
