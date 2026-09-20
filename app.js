@@ -19,100 +19,96 @@ let editFlag = false;
 let editID = "";
 
 button.addEventListener("click", Add_items);
-window.addEventListener("DOMContentLoaded", setupItems); 
+window.addEventListener("DOMContentLoaded", setupItems);
+
+
+// document.addEventListener("keypress", function(event) {
+//     const eventKey = event.key;
+//     if(eventKey === "Enter") {
+//        return Add_items;
+//     }
+//     else {
+//         return null;
+//     }
+// })
+
 
 // Add_items function add value to the screen
-function Add_items(e){
-     e.preventDefault();
+function Add_items(e) {
+    e.preventDefault();
+    const value = text.value.trim();
+     if (!value) return;
 
-    // get the text value
-     const value = text.value;
+     if (editFlag && editID) {
+         const item = grocery.querySelector(`[data-id="${editID}"]`);
+
+         if (item) {
+             item.querySelector('span').textContent = value;
+
+             const storedItems = JSON.parse(localStorage.getItem("task") || "[]");
+             const itemIndex = storedItems.findIndex((task) => task.IDs === editID);
+
+             if (itemIndex !== -1) {
+                 storedItems[itemIndex].Value = value;
+                 localStorage.setItem("task", JSON.stringify(storedItems));
+             }
+         }
+
+         editFlag = false;
+         editID = "";
+         setDefault();
+         displayAlert()
+         return;
+     }
+    const id = new Date().toString();
+
     
-     // convert date into a string
-     const id = new Date().toString();
-    //checking if the value is true && editflag is false
-    // if(value && !editFlag){
-                //create list item
-                 create_list(id, value)
-                //  console.log(value);
-                //display alert
-                // displayAlert("item added to the list", "success");
-
-                // show container
-                // container.classList.add("show-container")
-                // add to local storagae
-                addToLocalStorage(id, value);
-                // getLocalStorage(id, value);
-                
-                // set back to default
-                // setupItems();
-                Edit_btn
-
-                setDefault(value);
+    create_list(id, value);
 
 
-    // }
+    addToLocalStorage(id, value);
 
-    // prevent default behaivour;
-
+    setDefault();
 }
 
 
- function delete_btn(e, n) {
-    //    const element = e.currentTarget.parentElement.parentElement;
-        const delete_button = e.querySelector(".delete-btn");
-           
-    //    grocery.removeChild(element)
-    //    setDefault()
-    // console.log(localStorage.getItem("task"))
-       delete_button.addEventListener("click", function(j) {
-         grocery.removeChild(e);
-           let items = JSON.parse(localStorage.getItem("task"));
-        //    console.log(j.currentTarget.parentElement.parentElement)
-        //         let item = [items]
 
-             items = items.filter(function (item) {
-            //    if (items.IDs !== n) {
-                //   JSON.stringify(localStorage.removeItem("task"));
-                 
+function delete_btn(e) {
+    const delete_button = e.querySelector(".delete-btn");
+    //  console.log(grocery)
 
+    delete_button.addEventListener("click", function () {
+        const storedItems = JSON.parse(localStorage.getItem("task") || "[]");
+        const updatedItems = storedItems.filter((item) => item.IDs !== e.dataset.id);
 
-        //     //    }
-
-           });
-
-    })
+        localStorage.setItem("task", JSON.stringify(updatedItems));
+        e.remove();
+    });
 }
 
-function Edit_btn(e){
+
+function Edit_btn(e) {
     const edit_button = e.querySelector(".edit-btn");
-    // editElement = e.currentTarget.parentElement.previousElementSibling;
-    editElement = e.querySelector("span").innerHTML;
-    // text.value = editElement;
 
-    edit_button.addEventListener('click', function(j){
-        // console.log(e.querySelector("span").innerHTML);
-       
 
-        console.log(j.currentTarget);
-        text.value = editElement = e.querySelector("span").innerHTML;
-        button.innerHTML = "Edit";
-        button.addEventListener("click", function(){
-            if(button.innerHTML == "Edit"){
-                console.log(text.value)
-            }
-        })
+    edit_button.addEventListener('click', function () {
+        editFlag = true;
+        editID = e.dataset.id;
+        text.value = e.querySelector("span").textContent.trim();
+        button.textContent = "Edit Item";
 
-    })
+
+    });
+    // console.log("ksld")
 }
 
-    // create a innerHTML
-    function create_list(IDs, Value) {
-            //create an article element
-            const element = document.createElement("article");
-            // element.setAttribute("data-id", id);
-            element.classList.add("grocery-item");
-            element.innerHTML = `
+// create a innerHTML
+function create_list(IDs, Value) {
+    //create an article element
+    const element = document.createElement("article");
+    element.dataset.id = IDs;
+    element.classList.add("grocery-item");
+    element.innerHTML = `
                 <p>${IDs} </p>
                 <span>${Value} </span>
             
@@ -127,98 +123,89 @@ function Edit_btn(e){
                                     </button>
                                 </div>
                     `;
-            //put the child element inside the grocery container
+    grocery.appendChild(element);
+    delete_btn(element);
+    Edit_btn(element);
+}
 
 
 
-           
-
-                // console.log(delete_button);
-            // delete_button.addEventListener("click", delete_btn)
-            grocery.appendChild(element);
-
-                   
-
-
-       
-        }
-
-
-
-   function addToLocalStorage(IDs, Value){
+function addToLocalStorage(IDs, Value) {
     //create and object of both IDs and Value
-        let grocery = {IDs, Value}
+    let grocery = { IDs, Value }
 
-            //check if localstorage is empty
-        if (localStorage.getItem("task") === null) {
-            //create an array
-            var grocerys = [];
-                //push the object grocery to grocerys array;
-            grocerys.push(grocery);
-            
-            // set the local storage item
+    //check if localstorage is empty
+    if (localStorage.getItem("task") === null) {
+        //create an array
+        var grocerys = [];
+        //push the object grocery to grocerys array;
+        grocerys.push(grocery);
+
+        // set the local storage item
         localStorage.setItem("task", JSON.stringify(grocerys));
 
-        }
-        //check if localstorage is not empty
-        else {
-            var grocerys = JSON.parse(localStorage.getItem("task"));
-                  //push the object grocery to grocerys array;
-            //       console.log(typeof grocerys);
-            grocerys.push(grocery);
-                            // set the local storage item
+    }
+    //check if localstorage is not empty
+    else {
+        var grocerys = JSON.parse(localStorage.getItem("task"));
+        //push the object grocery to grocerys array;
+        //       console.log(typeof grocerys);
+        grocerys.push(grocery);
+        // set the local storage item
 
-            localStorage.setItem("task", JSON.stringify(grocerys));
+        localStorage.setItem("task", JSON.stringify(grocerys));
 
-        }           
-            
     }
 
- function setupItems() {
-    // let bookmark equal to localstorage task
-   let bookmark = JSON.parse(localStorage.getItem("task"));
+}
 
-   // check if bookmark length is less than 0
-   if(bookmark.length > 0){
+function setupItems() {
+    // let bookmark equal to localstorage task
+    let bookmark = JSON.parse(localStorage.getItem("task"));
+
+    // check if bookmark length is less than 0
+    if (bookmark.length > 0) {
         //loop through bookmark array
-        bookmark.forEach(function(item){
+        bookmark.forEach(function (item) {
             // call the create_list function and set the item
             create_list(item.IDs, item.Value)
-        
+
         })
 
-    }}
- 
-    // set text.value to empty string
-    function setDefault(values) {     
-        // text.value is equal to empty string   
-        text.value = " ";
     }
+}
 
-   
-    Toggle.addEventListener('click', (e) => {
-  document.documentElement.classList.toggle('dark-theme');
-//   console.log(e.target);
-  let checkClasslist = document.querySelector(".grocery-list");
-        if (checkClasslist.classList.contains("white-theme")){
-            checkClasslist.classList.remove('white-theme');
-                Toggle.innerHTML = "Dark-mode"
-                
+// set text.value to empty string
+function setDefault() {
+    text.value = "";
+    button.textContent = "Submit";
+}
 
-        } else {
-            checkClasslist.classList.add("white-theme");
-            Toggle.innerHTML = "Light-mode"
+function displayAlert() {
+    let alert = document.querySelector("#alert");
+    console.log(alert);
+}
 
-        }
-    });
+// displayAlert();
 
 
-    
+
+Toggle.addEventListener('click', () => {
+    const root = document.documentElement;
+    const groceryList = document.querySelector('.grocery-list');
+    const isDarkTheme = root.classList.toggle('dark-theme');
+
+    groceryList.classList.toggle('white-theme', !isDarkTheme);
+    Toggle.textContent = isDarkTheme ? 'Dark-mode' : 'Light-mode';
+});
+
+
+
 
 
 
 
 //  setInterval()
-    //  function editButton(){
-        // console.log(document.querySelectorAll(".title"), alert)}
+//  function editButton(){
+// console.log(document.querySelectorAll(".title"), alert)}
 //    , 10000);
