@@ -5,12 +5,13 @@
 const button = document.getElementById('submit-btn');
 const text = document.getElementById('text');
 const grocery = document.querySelector('.grocery-list');
+const alert = document.querySelector(".alert");
 const container = document.querySelector(".grocery-container");
 const grocery_list = document.querySelectorAll(".grocery-item");
 
 const Alert = document.querySelector('#alert');
 const Toggle = document.querySelector('.toggleBtn')
-// console.log(show);
+console.log("kdk");
 
 
 
@@ -18,14 +19,14 @@ let editElement;
 let editFlag = false;
 let editID = "";
 
-button.addEventListener("click", Add_items);
+// button.addEventListener("click", Add_items);
 window.addEventListener("DOMContentLoaded", setupItems);
 
 
 document.addEventListener("keypress", keyboard_Press)
 
-function keyboard_Press(type) {
-    
+function keyboard_Press(type) {    
+
         const eventKey = type.key;
         if (eventKey === "Enter") {
             Add_items(type)
@@ -59,17 +60,38 @@ function Add_items(e) {
              }
          }
 
+
          editFlag = false;
          editID = "";
          setDefault();
-         displayAlert()
          return;
+
+        //  const dateStyle = grocery.querySelectorAll("P");
+        //  dateStyle.forEach((item) => {
+        //      //  item.preventDefault()
+        //      item.classList.add("dateStyle");
+        //      console.log(item)
+
+        //  })
      }
-    const id = new Date().toString();
+
+     const date = new Date()
+   
+    const gmtPlusOneString = date.toLocaleString('en-GB', {
+        timeZone: 'Africa/Lagos',
+        hour12: true
+    });
+
+    const id = gmtPlusOneString;
+    // console.log();
+   
+
+
 
     
     create_list(id, value);
     addToLocalStorage(id, value);
+    displayAlert("item added to the list", "success");
     setDefault();
 }
 
@@ -85,12 +107,18 @@ function delete_btn(e) {
 
         localStorage.setItem("task", JSON.stringify(updatedItems));
         e.remove();
+
+
+        displayAlert("item remove from list was successful", "danger");
+
     });
 }
 
 
 function Edit_btn(e) {
     const edit_button = e.querySelector(".edit-btn");
+    // displayAlert("successfully Edited", "success");
+
 
 
     edit_button.addEventListener('click', function () {
@@ -131,7 +159,7 @@ function create_list(IDs, Value) {
 }
 
 
-
+//add items to local storage
 function addToLocalStorage(IDs, Value) {
     //create and object of both IDs and Value
     let grocery = { IDs, Value }
@@ -180,32 +208,32 @@ function setupItems() {
 // set text.value to empty string
 function setDefault() {
     text.value = "";
-    button.textContent = "Submit";
-}
-
-function displayAlert() {
-    let alert = document.querySelector("#alert");
-    console.log(alert);
+    button.textContent = "Add_List";
 }
 
 // displayAlert();
-
-
+function displayAlert(text, action) {
+    alert.textContent = text;
+    alert.classList.add(`alert-${action}`);
+    // remove alert
+    setTimeout(function () {
+        alert.textContent = "";
+        alert.classList.remove(`alert-${action}`);
+    }, 1000);
+}
+   
 
 Toggle.addEventListener('click', () => {
     const root = document.documentElement;
-    const groceryList = document.querySelector('.grocery-list');
+    // const groceryList = document.querySelector('.grocery-list');
     const isDarkTheme = root.classList.toggle('dark-theme');
 
-    groceryList.classList.toggle('white-theme', !isDarkTheme);
-    Toggle.textContent = isDarkTheme ? 'Dark-mode' : 'Light-mode';
+    // grocery.classList.toggle('white-theme', !isDarkTheme);
+    Toggle.classList.toggle('white-theme' , !isDarkTheme);
+
+    Toggle.textContent = isDarkTheme ? 'Light-mode' : 'Dark-mode';
+
 });
-
-
-
-
-
-
 
 //  setInterval()
 //  function editButton(){
