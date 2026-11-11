@@ -1,10 +1,18 @@
 import React from 'react';
-import ReactDom from 'react-dom/client'
-import App from './App.jsx'
-// import './index.css'; 
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import { registerSW } from 'virtual:pwa-register';
 
-ReactDom.createRoot(document.getElementById('root')).render (
+// Register service worker for offline access
+registerSW({
+  immediate: true,
+  onOfflineReady() {
+    console.log('To-Do List is ready to work offline.');
+  },
+});
+
+ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App></App>
+    <App />
   </React.StrictMode>
-) 
+); 

@@ -1,0 +1,8 @@
+{
+  "name": "To Do List App",
+  "description": "A task and to-do list manager with local storage, dark mode, and item editing.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "permissions": []
+}
