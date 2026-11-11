@@ -1,4 +1,4 @@
-# To Do List App
+# BeOnTime
 
 A React-based task manager built with Vite. Create and organize tasks, set due dates and reminders, and track weekly completion.
 

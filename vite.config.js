@@ -11,8 +11,8 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
       manifest: {
         id: '/',
-        name: 'To Do List App',
-        short_name: 'ToDo List',
+        name: 'BeOnTime',
+        short_name: 'BeOnTime',
         description: 'A task and to-do list manager with local storage, dark mode, and offline reminder tracking.',
         theme_color: '#49a6e9',
         background_color: '#ffffff',
