@@ -1,10 +1,13 @@
 # Dependencies
 node_modules/
+jspm_packages/
 
 # Build output and tooling caches
 dist/
+dev-dist/
 coverage/
 .vite/
+.vercel/
 
 # Local environment variables (keep the example template)
 .env

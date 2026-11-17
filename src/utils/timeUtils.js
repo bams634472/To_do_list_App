@@ -1,101 +1,114 @@
-/**
- * Time and timezone utilities using the user's device date and local timezone.
- */
+const WAT_TIME_ZONE = 'Africa/Lagos';
+const WAT_OFFSET_MILLISECONDS = 60 * 60 * 1000;
 
-/**
- * Returns the device's local timezone name (e.g. "America/Los_Angeles", "Europe/London", etc.)
- */
-export const getDeviceTimezoneName = () => {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Device Local Time';
-  } catch {
-    return 'Device Local Time';
-  }
+const getWATParts = (date) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: WAT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+
+  return Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+};
+
+const formatWATDateKey = (date) => {
+  const { year, month, day } = getWATParts(date);
+  return `${year}-${month}-${day}`;
 };
 
 /**
- * Converts a Date object or timestamp into YYYY-MM-DDTHH:mm string in device local time
- * suitable for <input type="datetime-local" />.
+ * Returns a datetime-local value representing the given instant in West Africa Time.
  */
-export const toDeviceDatetimeLocal = (date = new Date()) => {
-  const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-  const validDate = isNaN(d.getTime()) ? new Date() : d;
-
-  const pad = (n) => String(n).padStart(2, '0');
-  const year = validDate.getFullYear();
-  const month = pad(validDate.getMonth() + 1);
-  const day = pad(validDate.getDate());
-  const hours = pad(validDate.getHours());
-  const minutes = pad(validDate.getMinutes());
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+export const toWATDatetimeLocal = (date = new Date()) => {
+  const value = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+  const validDate = isNaN(value.getTime()) ? new Date() : value;
+  const { year, month, day, hour, minute } = getWATParts(validDate);
+  return `${year}-${month}-${day}T${hour}:${minute}`;
 };
 
 /**
- * Parses a date or datetime string into epoch milliseconds using the device's local time.
+ * Parses an ISO timestamp or a datetime-local value interpreted as West Africa Time.
  */
-export const parseDeviceDatetimeToMillis = (datetimeStr) => {
+export const parseWATDatetimeToMillis = (datetimeStr) => {
   if (!datetimeStr) return NaN;
   if (typeof datetimeStr === 'number') return datetimeStr;
 
   const str = String(datetimeStr).trim();
-  // If string already has a UTC indicator (Z) or explicit offset (+XX:XX or -XX:XX)
-  if (/[zZ]$|[+-]\d{2}(:?\d{2})?$/.test(str)) {
+  if (/T.*(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$/i.test(str)) {
     return new Date(str).getTime();
   }
 
-  // If standard YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss without timezone offset
-  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
-  if (match) {
-    const [, y, m, d, h, min, s] = match;
-    return new Date(Number(y), Number(m) - 1, Number(d), Number(h), Number(min), Number(s || 0)).getTime();
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?$/);
+  if (!match) return new Date(str).getTime();
+
+  const [, year, month, day, hour = '0', minute = '0', second = '0', millisecond = '0'] = match;
+  const wallTime = new Date(0);
+  wallTime.setUTCFullYear(Number(year), Number(month) - 1, Number(day));
+  wallTime.setUTCHours(
+    Number(hour),
+    Number(minute),
+    Number(second),
+    Number(millisecond.padEnd(3, '0'))
+  );
+  const parsed = wallTime.getTime();
+  const normalized = new Date(parsed);
+
+  if (
+    normalized.getUTCFullYear() !== Number(year) ||
+    normalized.getUTCMonth() !== Number(month) - 1 ||
+    normalized.getUTCDate() !== Number(day) ||
+    normalized.getUTCHours() !== Number(hour) ||
+    normalized.getUTCMinutes() !== Number(minute) ||
+    normalized.getUTCSeconds() !== Number(second)
+  ) {
+    return NaN;
   }
 
-  return new Date(str).getTime();
+  return parsed - WAT_OFFSET_MILLISECONDS;
 };
 
 /**
- * Formats a date/timestamp or datetime string into a clean string using the device's date and locale.
- * e.g. "Wed, 11 Nov 2026, 02:30 AM" or "11 Nov, 02:30 AM".
+ * Formats a date or timestamp using the device locale and West Africa Time.
  */
-export const formatDeviceDate = (
+export const formatWATDate = (
   dateInput,
   { includeYear = false, includeSeconds = false, includeWeekday = false } = {}
 ) => {
   if (!dateInput) return '';
 
-  let dateObj;
-  if (typeof dateInput === 'string') {
-    const millis = parseDeviceDatetimeToMillis(dateInput);
-    dateObj = new Date(millis);
-  } else {
-    dateObj = new Date(dateInput);
-  }
+  const millis =
+    typeof dateInput === 'string' ? parseWATDatetimeToMillis(dateInput) : new Date(dateInput).getTime();
+  const date = new Date(millis);
+  if (isNaN(date.getTime())) return String(dateInput);
 
-  if (isNaN(dateObj.getTime())) {
-    return String(dateInput);
-  }
-
-  const formatted = dateObj.toLocaleString(undefined, {
-    ...(includeWeekday ? { weekday: 'short' } : {}),
-    day: 'numeric',
-    month: 'short',
-    ...(includeYear ? { year: 'numeric' } : {}),
-    hour: '2-digit',
-    minute: '2-digit',
-    ...(includeSeconds ? { second: '2-digit' } : {}),
-    hour12: true,
-  });
-
-  return formatted.replace(/\b(am|pm)\b/i, (m) => m.toUpperCase());
+  return date
+    .toLocaleString(undefined, {
+      timeZone: WAT_TIME_ZONE,
+      ...(includeWeekday ? { weekday: 'short' } : {}),
+      day: 'numeric',
+      month: 'short',
+      ...(includeYear ? { year: 'numeric' } : {}),
+      hour: '2-digit',
+      minute: '2-digit',
+      ...(includeSeconds ? { second: '2-digit' } : {}),
+      hour12: true,
+    })
+    .replace(/\b(am|pm)\b/i, (value) => value.toUpperCase());
 };
 
 /**
- * Returns today's device date only formatted (e.g. "Wed, 11 Nov 2026").
+ * Returns today's date in West Africa Time.
  */
-export const getDeviceTodayFormatted = (date = new Date()) => {
-  const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-  const valid = isNaN(d.getTime()) ? new Date() : d;
-  return valid.toLocaleDateString(undefined, {
+export const getWATTodayFormatted = (date = new Date()) => {
+  const value = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+  const validDate = isNaN(value.getTime()) ? new Date() : value;
+  return validDate.toLocaleDateString(undefined, {
+    timeZone: WAT_TIME_ZONE,
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -104,34 +117,30 @@ export const getDeviceTodayFormatted = (date = new Date()) => {
 };
 
 /**
- * Calculates a quick preset (e.g. +15m, +60m) based on current device date and returns datetime-local string.
+ * Calculates a quick reminder preset from the current instant and returns it in WAT.
  */
-export const getDevicePresetMinutes = (minutes) => {
-  const future = new Date(Date.now() + minutes * 60 * 1000);
-  return toDeviceDatetimeLocal(future);
+export const getWATPresetMinutes = (minutes, now = new Date()) => {
+  return toWATDatetimeLocal(new Date(now.getTime() + minutes * 60 * 1000));
 };
 
 /**
- * Calculates tomorrow at targetHour (default 09:00 AM) based on the device date.
+ * Calculates tomorrow at targetHour in West Africa Time.
  */
-export const getDeviceTomorrowMorning = (targetHour = 9) => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(targetHour, 0, 0, 0);
-  return toDeviceDatetimeLocal(tomorrow);
+export const getWATTomorrowMorning = (targetHour = 9, now = new Date()) => {
+  const { year, month, day } = getWATParts(now);
+  const tomorrowAtWAT = new Date(0);
+  tomorrowAtWAT.setUTCFullYear(Number(year), Number(month) - 1, Number(day) + 1);
+  tomorrowAtWAT.setUTCHours(targetHour, 0, 0, 0);
+  return toWATDatetimeLocal(new Date(tomorrowAtWAT.getTime() - WAT_OFFSET_MILLISECONDS));
 };
 
 /**
- * Formats current device date and time for live banner display.
+ * Formats the current time in West Africa Time.
  */
-export const getDeviceCurrentTimeFormatted = () => {
-  return formatDeviceDate(new Date(), { includeYear: false, includeSeconds: false });
+export const getWATCurrentTimeFormatted = () => {
+  return formatWATDate(new Date(), { includeYear: false });
 };
 
-// Aliases for compatibility
-export const formatGmtPlusOne = formatDeviceDate;
-export const toGmtPlusOneDatetimeLocal = toDeviceDatetimeLocal;
-export const parseGmtPlusOneToMillis = parseDeviceDatetimeToMillis;
-export const getGmtPlusOnePresetMinutes = getDevicePresetMinutes;
-export const getGmtPlusOneTomorrowMorning = getDeviceTomorrowMorning;
-export const getCurrentGmtPlusOneFormatted = getDeviceCurrentTimeFormatted;
+export const getWATDateKey = (date) => formatWATDateKey(date);
+
+export const getWATTimezoneName = () => 'West Africa Time (WAT)';

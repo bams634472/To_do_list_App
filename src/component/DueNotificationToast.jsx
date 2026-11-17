@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { formatDeviceDate } from '../utils/timeUtils';
+import { formatWATDate } from '../utils/timeUtils';
 
 const DueNotificationToast = ({
   notifications,
@@ -79,7 +79,7 @@ const DueNotificationToast = ({
                 <span className="due-notification-time">
                   <i className="fas fa-history" style={{ marginRight: '4px' }}></i>
                   {isReminder ? 'Alert Time: ' : 'Due Time: '}
-                  {item.time ? formatDeviceDate(item.time, { includeYear: true }) : 'Now'}
+                  {item.time ? `${formatWATDate(item.time, { includeYear: true })} WAT` : 'Now (WAT)'}
                 </span>
               </div>
             </div>

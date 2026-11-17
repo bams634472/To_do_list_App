@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
-  getDevicePresetMinutes,
-  getDeviceTomorrowMorning,
-  getDeviceCurrentTimeFormatted,
-  getDeviceTodayFormatted,
-  formatDeviceDate,
-  toDeviceDatetimeLocal,
-  getDeviceTimezoneName,
+  getWATPresetMinutes,
+  getWATTomorrowMorning,
+  getWATCurrentTimeFormatted,
+  getWATTodayFormatted,
+  formatWATDate,
+  toWATDatetimeLocal,
+  getWATTimezoneName,
 } from '../utils/timeUtils';
 
 const TaskForm = ({
@@ -20,33 +20,34 @@ const TaskForm = ({
   reminderTime,
   setReminderTime,
   notificationPermission,
+  backgroundNotificationStatus,
   onRequestNotificationPermission,
   editFlag,
   onSubmit,
   onKeyDown,
 }) => {
-  const [deviceTime, setDeviceTime] = useState(getDeviceCurrentTimeFormatted());
-  const [deviceToday, setDeviceToday] = useState(getDeviceTodayFormatted());
-  const timezone = getDeviceTimezoneName();
+  const [watTime, setWatTime] = useState(getWATCurrentTimeFormatted());
+  const [watToday, setWatToday] = useState(getWATTodayFormatted());
+  const watTimezone = getWATTimezoneName();
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setDeviceTime(getDeviceCurrentTimeFormatted());
-      setDeviceToday(getDeviceTodayFormatted());
+      setWatTime(getWATCurrentTimeFormatted());
+      setWatToday(getWATTodayFormatted());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
   const handleQuickReminder = (minutes) => {
-    setReminderTime(getDevicePresetMinutes(minutes));
+    setReminderTime(getWATPresetMinutes(minutes));
   };
 
   const handleTomorrowMorningReminder = () => {
-    setReminderTime(getDeviceTomorrowMorning(9));
+    setReminderTime(getWATTomorrowMorning(9));
   };
 
-  const handleSetCurrentDeviceDateTime = () => {
-    setReminderTime(toDeviceDatetimeLocal(new Date()));
+  const handleSetCurrentWATDateTime = () => {
+    setReminderTime(toWATDatetimeLocal(new Date()));
   };
 
   return (
@@ -64,10 +65,10 @@ const TaskForm = ({
         ></textarea>
       </div>
 
-      {/* Current Device Date & Time banner */}
+      {/* Current West Africa Date & Time banner */}
       <div className="gmt-clock-banner">
         <i className="fas fa-calendar-check" style={{ marginRight: '6px', color: '#0284c7' }}></i>
-        <span>Device Date & Time: <strong>{deviceTime}</strong> ({timezone})</span>
+        <span>West Africa Time: <strong>{watTime}</strong> ({watTimezone})</span>
       </div>
 
       <div className="form-controls-grid">
@@ -114,7 +115,7 @@ const TaskForm = ({
           {dueDate && (
             <span className="datetime-preview-hint">
               <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>
-              Due: {formatDeviceDate(dueDate, { includeWeekday: true, includeYear: true })}
+              Due (WAT): {formatWATDate(dueDate, { includeWeekday: true, includeYear: true })}
             </span>
           )}
         </div>
@@ -132,10 +133,10 @@ const TaskForm = ({
               <button
                 type="button"
                 className="preset-btn"
-                onClick={handleSetCurrentDeviceDateTime}
-                title="Set to current device date and time"
+                onClick={handleSetCurrentWATDateTime}
+                title="Set to current West Africa date and time"
               >
-                Now (Device Date)
+                Now (WAT)
               </button>
               <button
                 type="button"
@@ -188,12 +189,12 @@ const TaskForm = ({
           {reminderTime ? (
             <div className="datetime-preview-hint reminder-preview-active">
               <i className="fas fa-calendar-check" style={{ marginRight: '6px', color: '#d97706' }}></i>
-              Reminder Date (Device): <strong>{formatDeviceDate(reminderTime, { includeWeekday: true, includeYear: true })}</strong>
+              Reminder Date (WAT): <strong>{formatWATDate(reminderTime, { includeWeekday: true, includeYear: true })}</strong>
             </div>
           ) : (
             <div className="datetime-preview-hint reminder-bar-guide">
               <i className="fas fa-calendar-day" style={{ marginRight: '6px', color: '#b45309' }}></i>
-              Device Date: <strong>{deviceToday}</strong> &bull; Pick a date/time or select a preset
+              WAT Date: <strong>{watToday}</strong> &bull; Pick a date/time or select a preset
             </div>
           )}
         </div>
@@ -209,7 +210,7 @@ const TaskForm = ({
             <i className="fas fa-bell" style={{ marginRight: '6px' }}></i>
             {notificationPermission === 'denied'
               ? 'Notifications blocked by browser (in-app alerts active)'
-              : 'Enable Browser Due & Reminder Alerts'}
+              : 'Enable Background Reminders & Browser Alerts'}
           </button>
         </div>
       )}
@@ -217,7 +218,13 @@ const TaskForm = ({
       {notificationPermission === 'granted' && (
         <div className="notification-status-active">
           <i className="fas fa-check-circle" style={{ color: '#155724', marginRight: '6px' }}></i>
-          Browser alerts enabled for task reminders & due dates
+          Browser alerts enabled for task reminders & due dates.
+          {backgroundNotificationStatus === 'syncing' && ' Setting up background notifications...'}
+          {backgroundNotificationStatus === 'active' && ' Background notifications are active when the app is closed.'}
+          {backgroundNotificationStatus === 'unsupported' && ' This browser does not support background push notifications.'}
+          {backgroundNotificationStatus?.startsWith('error:') && (
+            <span role="alert"> Background notifications unavailable: {backgroundNotificationStatus.slice(7)}</span>
+          )}
         </div>
       )}
 

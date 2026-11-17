@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import ThemeToggle from './component/ThemeToggle';
 import Alert from './component/Alert';
 import TaskForm from './component/TaskForm';
@@ -8,13 +8,19 @@ import DueNotificationToast from './component/DueNotificationToast';
 import PWAInstallButton from './component/PWAInstallButton';
 import OfflineIndicator from './component/OfflineIndicator';
 import {
-  parseDeviceDatetimeToMillis,
-  formatDeviceDate,
-  getDevicePresetMinutes,
-  toDeviceDatetimeLocal,
+  parseWATDatetimeToMillis,
+  formatWATDate,
+  getWATPresetMinutes,
+  toWATDatetimeLocal,
 } from './utils/timeUtils';
 
 const CATEGORIES = ['Personal', 'Work', 'Shopping'];
+
+const decodeVapidPublicKey = (key) => {
+  const padding = '='.repeat((4 - (key.length % 4)) % 4);
+  const base64 = (key + padding).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+};
 
 const App = () => {
   const [items, setItems] = useState([]);
@@ -29,6 +35,9 @@ const App = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(true);
   const [activeNotifications, setActiveNotifications] = useState([]);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [backgroundNotificationStatus, setBackgroundNotificationStatus] = useState('idle');
+  const notificationSyncRun = useRef(0);
   const [notificationPermission, setNotificationPermission] = useState(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       return Notification.permission;
@@ -47,8 +56,105 @@ const App = () => {
       }
     } catch (e) {
       console.error('Failed to parse tasks from localStorage', e);
+    } finally {
+      setTasksLoaded(true);
     }
   }, []);
+
+  useEffect(() => {
+    const run = ++notificationSyncRun.current;
+    if (!tasksLoaded) return undefined;
+    if (notificationPermission !== 'granted') {
+      setBackgroundNotificationStatus('permission-required');
+      return undefined;
+    }
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setBackgroundNotificationStatus('unsupported');
+      return undefined;
+    }
+
+    setBackgroundNotificationStatus('syncing');
+    const timer = setTimeout(async () => {
+      try {
+        const keyResponse = await fetch('/api/push/public-key');
+        if (!keyResponse.ok) {
+          throw new Error(`Could not load push configuration (HTTP ${keyResponse.status}).`);
+        }
+        const { publicKey } = await keyResponse.json();
+        if (typeof publicKey !== 'string' || !publicKey) {
+          throw new Error('The server did not provide a VAPID public key.');
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: decodeVapidPublicKey(publicKey),
+          });
+        }
+
+        const events = items.flatMap((item) => {
+          if (item.completed) return [];
+          const reminders = [];
+          const taskText = String(item.Value || 'Task').slice(0, 100);
+          const categoryName = item.category || 'Personal';
+
+          if (item.reminderTime && !item.reminderFired) {
+            const timestamp = parseWATDatetimeToMillis(item.reminderTime);
+            if (Number.isFinite(timestamp)) {
+              reminders.push({
+                id: `${item.IDs}:reminder`,
+                title: `Reminder: ${taskText}`,
+                body: `${categoryName} · ${formatWATDate(item.reminderTime)} WAT`,
+                timestamp,
+              });
+            }
+          }
+
+          if (item.dueDate && !item.notified) {
+            const timestamp = parseWATDatetimeToMillis(item.dueDate);
+            if (Number.isFinite(timestamp)) {
+              reminders.push({
+                id: `${item.IDs}:due`,
+                title: `Task due: ${taskText}`,
+                body: `${categoryName} · Due ${formatWATDate(item.dueDate, { includeYear: true })} WAT`,
+                timestamp,
+              });
+            }
+          }
+
+          return reminders;
+        });
+
+        if (events.length > 500) {
+          throw new Error('Background notifications support up to 500 scheduled alerts per device.');
+        }
+
+        const syncResponse = await fetch('/api/reminders/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: subscription.toJSON(), events }),
+        });
+        if (!syncResponse.ok) {
+          const result = await syncResponse.json().catch(() => ({}));
+          throw new Error(result.error || `Could not sync reminders (HTTP ${syncResponse.status}).`);
+        }
+
+        if (run === notificationSyncRun.current) {
+          setBackgroundNotificationStatus('active');
+        }
+      } catch (error) {
+        console.error('Background notification setup failed:', error);
+        if (run === notificationSyncRun.current) {
+          setBackgroundNotificationStatus(`error: ${error.message}`);
+        }
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [items, notificationPermission, tasksLoaded]);
 
   const playChime = useCallback(() => {
     try {
@@ -111,7 +217,7 @@ const App = () => {
     }
   };
 
-  // Immediate 1-second background reminder monitoring system using device date/time
+  // Check reminders and due dates against their West Africa Time values.
   useEffect(() => {
     const checkDueAndReminders = () => {
       const now = Date.now();
@@ -123,7 +229,7 @@ const App = () => {
 
         // 1. Check Reminder Alert using device time
         if (item.reminderTime && !item.reminderFired && !item.completed) {
-          const rTime = parseDeviceDatetimeToMillis(item.reminderTime);
+          const rTime = parseWATDatetimeToMillis(item.reminderTime);
           if (!isNaN(rTime) && rTime <= now) {
             hasUpdates = true;
             updated.reminderFired = true;
@@ -132,7 +238,7 @@ const App = () => {
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
               try {
                 new Notification(`🔔 Reminder: ${item.Value.slice(0, 35)}`, {
-                  body: `Category: ${item.category || 'Personal'}\nReminder: ${formatDeviceDate(item.reminderTime)}\nTime reached!`,
+                  body: `Category: ${item.category || 'Personal'}\nReminder: ${formatWATDate(item.reminderTime)} WAT\nTime reached!`,
                   icon: '/src/assets/images/vite.svg',
                   requireInteraction: true,
                 });
@@ -153,7 +259,7 @@ const App = () => {
 
         // 2. Check Due Date using device time
         if (item.dueDate && !item.notified && !item.completed) {
-          const dueTime = parseDeviceDatetimeToMillis(item.dueDate);
+          const dueTime = parseWATDatetimeToMillis(item.dueDate);
           if (!isNaN(dueTime) && dueTime <= now) {
             hasUpdates = true;
             updated.notified = true;
@@ -162,7 +268,7 @@ const App = () => {
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
               try {
                 new Notification(`⏰ Task Due: ${item.Value.slice(0, 35)}`, {
-                  body: `Category: ${item.category || 'Personal'}\nDue: ${formatDeviceDate(item.dueDate, { includeYear: true })}\nDue date reached!`,
+                  body: `Category: ${item.category || 'Personal'}\nDue: ${formatWATDate(item.dueDate, { includeYear: true })} WAT\nDue date reached!`,
                   icon: '/src/assets/images/vite.svg',
                   requireInteraction: true,
                 });
@@ -251,16 +357,10 @@ const App = () => {
     }
 
     const date = new Date();
-    const deviceDateString = date.toLocaleString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
+    const id = formatWATDate(date, {
+      includeYear: true,
+      includeSeconds: true,
     });
-    const id = deviceDateString;
 
     const newItem = {
       IDs: id,
@@ -344,7 +444,7 @@ const App = () => {
   };
 
   const handleSnoozeReminder = (id, minutes = 5) => {
-    const snoozeTime = getDevicePresetMinutes(minutes);
+    const snoozeTime = getWATPresetMinutes(minutes);
 
     const updated = items.map((item) => {
       if (item.IDs === id) {
@@ -360,7 +460,7 @@ const App = () => {
     setItems(updated);
     localStorage.setItem('task', JSON.stringify(updated));
     setActiveNotifications((prev) => prev.filter((n) => n.taskId !== id));
-    displayAlert(`Reminder snoozed for ${minutes} min (until ${formatDeviceDate(snoozeTime)})`, 'success');
+    displayAlert(`Reminder snoozed for ${minutes} min (until ${formatWATDate(snoozeTime)} WAT)`, 'success');
   };
 
   const handleDismissNotification = (id) => {
@@ -369,11 +469,11 @@ const App = () => {
 
   const handleTriggerTestReminder = () => {
     playChime();
-    const nowLocal = toDeviceDatetimeLocal(new Date());
+    const nowWAT = toWATDatetimeLocal(new Date());
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
         new Notification('🔔 Test Reminder Alert', {
-          body: `Time: ${formatDeviceDate(nowLocal)}\nThis is how your task reminders alert you using your device date & time!`,
+          body: `Time: ${formatWATDate(nowWAT)} WAT\nThis is how your task reminders alert you in West Africa Time.`,
           icon: '/src/assets/images/vite.svg',
         });
       } catch (e) {
@@ -387,10 +487,10 @@ const App = () => {
         taskId: 'test-' + Date.now(),
         taskValue: 'Sample: Complete Project Task & Review Notes',
         category: 'Work',
-        time: nowLocal,
+        time: nowWAT,
       },
     ]);
-    displayAlert(`Test alert triggered (${formatDeviceDate(nowLocal)})!`, 'success');
+    displayAlert(`Test alert triggered (${formatWATDate(nowWAT)} WAT)!`, 'success');
   };
 
   const handleSeedSampleData = () => {
@@ -577,6 +677,7 @@ const App = () => {
             reminderTime={reminderTime}
             setReminderTime={setReminderTime}
             notificationPermission={notificationPermission}
+            backgroundNotificationStatus={backgroundNotificationStatus}
             onRequestNotificationPermission={requestNotificationPermission}
             editFlag={editFlag}
             onSubmit={handleSubmit}

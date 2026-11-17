@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
-  formatDeviceDate,
-  parseDeviceDatetimeToMillis,
-  getDevicePresetMinutes,
-  getDeviceTomorrowMorning,
-  toDeviceDatetimeLocal,
+  formatWATDate,
+  parseWATDatetimeToMillis,
+  getWATPresetMinutes,
+  getWATTomorrowMorning,
+  toWATDatetimeLocal,
 } from '../utils/timeUtils';
 
 const TaskItem = ({
@@ -29,17 +29,17 @@ const TaskItem = ({
   const [tempReminder, setTempReminder] = useState(item.reminderTime || '');
 
   const hasDueDate = Boolean(item.dueDate);
-  const dueMillis = hasDueDate ? parseDeviceDatetimeToMillis(item.dueDate) : NaN;
+  const dueMillis = hasDueDate ? parseWATDatetimeToMillis(item.dueDate) : NaN;
   const isOverdue = !isNaN(dueMillis) ? dueMillis <= Date.now() : false;
   const formattedDueDate = hasDueDate
-    ? formatDeviceDate(item.dueDate, { includeWeekday: true, includeYear: true })
+    ? formatWATDate(item.dueDate, { includeWeekday: true, includeYear: true })
     : null;
 
   const hasReminder = Boolean(item.reminderTime);
-  const reminderMillis = hasReminder ? parseDeviceDatetimeToMillis(item.reminderTime) : NaN;
+  const reminderMillis = hasReminder ? parseWATDatetimeToMillis(item.reminderTime) : NaN;
   const isReminderFired = item.reminderFired || (!isNaN(reminderMillis) && reminderMillis <= Date.now());
   const formattedReminder = hasReminder
-    ? formatDeviceDate(item.reminderTime, { includeWeekday: true, includeYear: true })
+    ? formatWATDate(item.reminderTime, { includeWeekday: true, includeYear: true })
     : null;
 
   const handleSaveReminder = () => {
@@ -58,11 +58,11 @@ const TaskItem = ({
   };
 
   const setQuickPreset = (minutes) => {
-    setTempReminder(getDevicePresetMinutes(minutes));
+    setTempReminder(getWATPresetMinutes(minutes));
   };
 
   const setTomorrowMorningPreset = () => {
-    setTempReminder(getDeviceTomorrowMorning(9));
+    setTempReminder(getWATTomorrowMorning(9));
   };
 
   return (
@@ -188,10 +188,10 @@ const TaskItem = ({
               <button
                 type="button"
                 className="preset-btn"
-                onClick={() => setTempReminder(toDeviceDatetimeLocal(new Date()))}
-                title="Set to current device date and time"
+                onClick={() => setTempReminder(toWATDatetimeLocal(new Date()))}
+                title="Set to current West Africa date and time"
               >
-                Now (Device Date)
+                Now (WAT)
               </button>
               <button type="button" className="preset-btn" onClick={() => setQuickPreset(15)} title="Remind in 15 minutes">+15m</button>
               <button type="button" className="preset-btn" onClick={() => setQuickPreset(60)} title="Remind in 1 hour">+1h</button>
@@ -208,7 +208,7 @@ const TaskItem = ({
             {tempReminder && (
               <span className="datetime-preview-hint" style={{ marginTop: '4px', fontSize: '0.8rem' }}>
                 <i className="fas fa-calendar-check" style={{ marginRight: '4px', color: '#d97706' }}></i>
-                Reminder Date (Device): <strong>{formatDeviceDate(tempReminder, { includeWeekday: true, includeYear: true })}</strong>
+                Reminder Date (WAT): <strong>{formatWATDate(tempReminder, { includeWeekday: true, includeYear: true })}</strong>
               </span>
             )}
             <div className="inline-reminder-actions">
@@ -246,7 +246,7 @@ const TaskItem = ({
           type="button"
           className={`reminder-action-btn ${hasReminder ? 'has-reminder' : ''}`}
           onClick={() => {
-            setTempReminder(item.reminderTime || toDeviceDatetimeLocal(new Date(Date.now() + 15 * 60 * 1000)));
+            setTempReminder(item.reminderTime || toWATDatetimeLocal(new Date(Date.now() + 15 * 60 * 1000)));
             setIsEditingReminder(!isEditingReminder);
           }}
           title={hasReminder ? 'Edit or remove reminder' : 'Set a reminder for this task'}

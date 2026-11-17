@@ -10,6 +10,7 @@ import {
   Legend,
   Cell,
 } from 'recharts';
+import { getWATDateKey, parseWATDatetimeToMillis } from '../utils/timeUtils';
 
 const CATEGORY_COLORS = {
   Personal: '#49a6e9',
@@ -29,7 +30,11 @@ const TaskStatsChart = ({
   // Calculate completed tasks in the last 7 days
   const { categoryData, dailyData, totalCompletedLastWeek, topCategory } = useMemo(() => {
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const todayKey = getWATDateKey(now);
+    const [year, month, day] = todayKey.split('-').map(Number);
+    const firstDay = new Date(Date.UTC(year, month - 1, day - 6));
+    const firstDayKey = firstDay.toISOString().split('T')[0];
+    const sevenDaysAgo = parseWATDatetimeToMillis(`${firstDayKey}T00:00`);
 
     // Filter tasks completed in the last 7 days
     const completedLastWeek = items.filter((item) => {
@@ -76,14 +81,15 @@ const TaskStatsChart = ({
     // 2. Data by Day (Last 7 Days)
     const dayBuckets = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
-      const fullDateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const d = new Date(Date.UTC(year, month - 1, day - i));
+      const dateKey = d.toISOString().split('T')[0];
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+      const fullDateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
       const dayObj = {
         name: `${dayLabel} (${fullDateLabel})`,
         shortDay: dayLabel,
-        dateKey: d.toISOString().split('T')[0],
+        dateKey,
         Personal: 0,
         Work: 0,
         Shopping: 0,
@@ -92,7 +98,7 @@ const TaskStatsChart = ({
 
       completedLastWeek.forEach((item) => {
         const cDate = new Date(item.completedAt);
-        const itemDateKey = cDate.toISOString().split('T')[0];
+        const itemDateKey = getWATDateKey(cDate);
         if (itemDateKey === dayObj.dateKey) {
           const cat = item.category || 'Personal';
           if (dayObj[cat] !== undefined) {
