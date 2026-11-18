@@ -12,7 +12,7 @@ A React-based task manager built with Vite. Create and organize tasks, set due d
 - Install as a Progressive Web App (PWA) and use cached app assets offline
 - Save tasks in browser local storage
 
-Tasks are stored locally in the browser and are not synced to an account or across devices. West Africa Time reminders can be delivered by Vercel Cron when the app is closed, provided background notifications are configured. Browser notifications require permission and browser support.
+Tasks are stored locally in the browser and are not synced to an account or across devices. West Africa Time reminders can be delivered by GitHub Actions when the app is closed, provided background notifications are configured. Browser notifications require permission and browser support.
 
 All task dates, due dates, and reminders use West Africa Time (WAT, `Africa/Lagos`), regardless of the device's timezone.
 
@@ -54,14 +54,15 @@ No environment variables are required for local development. Configure the serve
 
 ## Background notifications on Vercel
 
-Background reminders require an HTTPS deployment on Vercel, an Upstash Redis database, and browser notification permission. The app syncs reminder text and times with Redis so Vercel Cron can send Web Push notifications once per minute even while the app is closed.
+Background reminders require an HTTPS deployment on Vercel, an Upstash Redis database, and browser notification permission. The app syncs reminder text and times with Redis so GitHub Actions can call the Web Push sender every five minutes while the app is closed.
 
 1. Create an Upstash Redis database and add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to the Vercel project environment.
 2. Generate VAPID keys with `npx web-push generate-vapid-keys`. Add the public and private keys as `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`. Set `VAPID_SUBJECT` to a contact address, for example `mailto:you@example.com`.
-3. Set `CRON_SECRET` to a long random secret in Vercel. Vercel uses it to authorize the scheduled reminder endpoint.
-4. Deploy the project to Vercel. The schedule in `vercel.json` runs `/api/cron/reminders` every minute; use a Vercel plan that supports per-minute cron schedules.
-5. Open the deployed app over HTTPS and enable browser notifications. The app will subscribe the browser and sync its pending reminders.
+3. Set `CRON_SECRET` to a long random secret in Vercel. Add the same value as a GitHub repository Actions secret named `CRON_SECRET`.
+4. Add a GitHub repository Actions secret named `REMINDER_CRON_URL` with the full endpoint URL, for example `https://your-site.vercel.app/api/cron/reminders`.
+5. Commit and push `.github/workflows/reminder-cron.yml` to the repository's default branch. It runs every five minutes and can also be started manually from the GitHub Actions tab.
+6. Deploy the project to Vercel, then open the deployed app over HTTPS and enable browser notifications. The app will subscribe the browser and sync its pending reminders.
 
-The public VAPID key is returned by the server to the browser; never expose `VAPID_PRIVATE_KEY` or the Upstash token. Reminder text, scheduled times, and the browser push subscription are stored in Upstash. Local Vite development does not run the Vercel API or Cron functions, so background push delivery must be tested on a Vercel deployment.
+The public VAPID key is returned by the server to the browser; never expose `VAPID_PRIVATE_KEY`, the Upstash token, or `CRON_SECRET`. Reminder text, scheduled times, and the browser push subscription are stored in Upstash. GitHub scheduled workflows are best-effort and may be delayed, so reminders can arrive later than five minutes after their scheduled time. Local Vite development does not run the Vercel API functions, so background push delivery must be tested on a Vercel deployment.
 
 Background push availability depends on browser support and notification permission. On iOS, install the site to the Home Screen before enabling push notifications.
