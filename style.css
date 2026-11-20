@@ -1565,6 +1565,174 @@ a {
   font-weight: 500;
 }
 
+/* Responsive layout for the task form and task cards */
+#ToDoList_section {
+  align-items: stretch;
+  gap: clamp(1rem, 3vw, 1.5rem);
+}
+
+#ToDoList_section > * {
+  width: 100%;
+  min-width: 0;
+}
+
+#ToDoList_section .section_item {
+  display: flex;
+}
+
+#ToDoList_section textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 12rem;
+  padding: 0.875rem;
+  border: 1px solid var(--clr-grey-8);
+  border-radius: var(--radius);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.form-controls-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: none;
+}
+
+.category-select-group,
+.datetime-input-group,
+.datetime-input-wrapper {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.category-select-group {
+  flex-wrap: wrap;
+}
+
+.category-select-group select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.datetime-input-wrapper {
+  flex-wrap: wrap;
+}
+
+.datetime-input-wrapper input[type="datetime-local"] {
+  flex: 1 1 12rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.reminder-presets {
+  max-width: 100%;
+}
+
+.preset-btn,
+.enable-notifications-btn {
+  min-height: 2.5rem;
+}
+
+.enable-notifications-btn {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.notification-status-active {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.task-header-row {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.task-header-right {
+  min-width: 0;
+}
+
+.task-created-id {
+  overflow-wrap: anywhere;
+}
+
+.task-text-content {
+  display: block;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.btn-container,
+.inline-reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.btn-container > button {
+  min-height: 2.5rem;
+  margin-right: 0 !important;
+}
+
+.inline-reminder-datetime {
+  width: 100%;
+  min-width: 0;
+}
+
+.top-bar-actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.top-actions-right {
+  justify-content: flex-start;
+}
+
+.stats-summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.35rem, 2vw, 0.75rem);
+}
+
+.stat-box {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media screen and (min-width: 700px) {
+  .form-controls-grid {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+}
+
+@media screen and (max-width: 400px) {
+  .container-section {
+    padding: 1rem;
+  }
+
+  .task-stats-card {
+    padding: 1rem;
+  }
+
+  .stats-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .notifications-overlay {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: calc(100vw - 1rem);
+    max-width: none;
+  }
+}
+
 .dark-theme .datetime-preview-hint {
   color: #38bdf8;
 }

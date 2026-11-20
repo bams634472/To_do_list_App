@@ -21,7 +21,6 @@ const CATEGORY_COLORS = {
 const TaskStatsChart = ({
   items,
   categories = ['Personal', 'Work', 'Shopping'],
-  onSeedSampleData,
   onClearAnalytics,
 }) => {
   const [viewMode, setViewMode] = useState('category'); // 'category' | 'daily'
@@ -213,18 +212,8 @@ const TaskStatsChart = ({
             <i className="fas fa-chart-pie empty-icon"></i>
             <p>No tasks completed in the last 7 days yet.</p>
             <p className="empty-subtext">
-              Check off tasks in your list below to see them appear here, or load sample weekly data.
+              Complete tasks to see your real activity appear here.
             </p>
-            {onSeedSampleData && (
-              <button
-                type="button"
-                className="seed-sample-btn"
-                onClick={onSeedSampleData}
-              >
-                <i className="fas fa-magic" style={{ marginRight: '6px' }}></i>
-                Load Sample Week Data
-              </button>
-            )}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={290}>

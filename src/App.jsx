@@ -493,66 +493,6 @@ const App = () => {
     displayAlert(`Test alert triggered (${formatWATDate(nowWAT)} WAT)!`, 'success');
   };
 
-  const handleSeedSampleData = () => {
-    const now = Date.now();
-    const sampleItems = [
-      {
-        IDs: 'Sample 1',
-        Value: 'Review project requirements and sprint roadmap',
-        category: 'Work',
-        completed: true,
-        completedAt: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        IDs: 'Sample 2',
-        Value: 'Prepare weekly client presentation slides',
-        category: 'Work',
-        completed: true,
-        completedAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        IDs: 'Sample 3',
-        Value: 'Weekly groceries: fresh veggies, milk & beans',
-        category: 'Shopping',
-        completed: true,
-        completedAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        IDs: 'Sample 4',
-        Value: 'Order new ergonomic mouse and desk mat',
-        category: 'Shopping',
-        completed: true,
-        completedAt: new Date(now - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        IDs: 'Sample 5',
-        Value: 'Morning 5km jog and mobility stretching',
-        category: 'Personal',
-        completed: true,
-        completedAt: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        IDs: 'Sample 6',
-        Value: 'Read 2 chapters of system design architecture',
-        category: 'Personal',
-        completed: true,
-        completedAt: new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        IDs: 'Sample 7',
-        Value: 'Code review for user authentication feature',
-        category: 'Work',
-        completed: true,
-        completedAt: new Date(now - 6 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ];
-
-    const merged = [...items, ...sampleItems];
-    setItems(merged);
-    localStorage.setItem('task', JSON.stringify(merged));
-    displayAlert('Loaded sample weekly completed tasks!', 'success');
-  };
-
   const handleToggleTheme = () => {
     const root = document.documentElement;
     const dark = root.classList.toggle('dark-theme');
@@ -690,7 +630,6 @@ const App = () => {
         <TaskStatsChart
           items={items}
           categories={CATEGORIES}
-          onSeedSampleData={handleSeedSampleData}
           onClearAnalytics={handleClearAnalytics}
         />
       )}
